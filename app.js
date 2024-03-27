@@ -23,6 +23,11 @@ function writeMoviesToFile(data) {
 }
 
 // Route to get all movies
+app.get('/', (req, res) => {
+    res.redirect('/movies');
+});
+
+// Route to get all movies
 app.get('/movies', (req, res) => {
     const movies = readMoviesFromFile();
     res.json(movies);
