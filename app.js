@@ -1,14 +1,18 @@
 const express = require('express');
-const cors = require('cors'); // Import the cors middleware
+const cors = require('cors');
 const fs = require('fs');
+const fileUpload = require('express-fileupload');
+
 const app = express();
-const multer  = require('multer');
-const upload = multer({ dest: 'uploads/' }); // Set the destination folder for uploaded images
 
 // Middleware for parsing JSON body
 app.use(express.json());
 
+// Middleware for enabling CORS
 app.use(cors());
+
+// Middleware for file upload
+app.use(fileUpload());
 
 // Path to the JSON file
 const filePath = './movies.json';
@@ -24,6 +28,14 @@ function writeMoviesToFile(data) {
     fs.writeFileSync(filePath, JSON.stringify({ movies: data }, null, 2));
 }
 
+// Function to generate full URL for an image
+function getImageUrl(filename, req) {
+    return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
+}
+
+// Serve static files from the 'uploads' directory
+app.use('/uploads', express.static('uploads'));
+
 // Route to get all movies
 app.get('/', (req, res) => {
     res.redirect('/movies');
@@ -31,104 +43,59 @@ app.get('/', (req, res) => {
 
 // Route to get all movies
 app.get('/movies', (req, res) => {
-    const movies = readMoviesFromFile();
+    const movies = readMoviesFromFile().map(movie => {
+        return { ...movie, image: getImageUrl(movie.image, req) };
+    });
     res.json({ message: 'Movie List', data: movies });
 });
 
+// Route to add a new movie with image upload
+app.post('/add_movies', (req, res) => {
+    if (!req.files || !req.files.image) {
+        return res.status(400).json({ error: 'No image uploaded' });
+    }
+
+    const image = req.files.image;
+    const fileName = `image_${Date.now()}.png`; // Assuming images are PNG format, adjust if necessary
+    const uploadPath = __dirname + '/uploads/' + fileName;
+
+    image.mv(uploadPath, (err) => {
+        if (err) {
+            return res.status(500).json({ error: 'Failed to upload image' });
+        }
+
+        const movies = readMoviesFromFile();
+        const newMovieId = movies.length > 0 ? Math.max(...movies.map(movie => movie.id)) + 1 : 1;
+        const newMovie = { id: newMovieId, ...req.body, image: fileName };
+        writeMoviesToFile(movies);
+        res.status(201).json({ message: 'New Movie added successfully', data: { ...newMovie, image: getImageUrl(newMovie.image, req) } });
+    });
+});
 
 // Route to get a specific movie by ID
 app.get('/single_movies/:id', (req, res) => {
     const movies = readMoviesFromFile();
     const movie = movies.find(movie => movie.id === parseInt(req.params.id));
     if (movie) {
-        res.json({ message: 'Movie Detail', data: movie });
+        res.json({ message: 'Movie Detail', data: { ...movie, image: getImageUrl(movie.image, req) } });
     } else {
-        res.status(401).json({ error: 'Movie not found' });
+        res.status(404).json({ error: 'Movie not found' });
     }
 });
 
-
-// Route to add a new movie
-// app.post('/add_movies', (req, res) => {
-//     const movies = readMoviesFromFile();
-//     // Generate a new unique ID for the new movie
-//     const newMovieId = movies.length > 0 ? Math.max(...movies.map(movie => movie.id)) + 1 : 1;
-//     const newMovie = { id: newMovieId, ...req.body };
-//     movies.push(newMovie);
-//     writeMoviesToFile(movies);
-//     res.status(201).json({ message: 'New Movie added successfuly', data: newMovie });
-// });
-
-
-// // Route to add a new movie or update an existing movie
-// app.post('/update_movies/:id', (req, res) => {
-//     const movies = readMoviesFromFile();
-//     const movieId = parseInt(req.params.id);
-//     const existingMovieIndex = movies.findIndex(movie => movie.id === movieId);
-//     if (existingMovieIndex !== -1) {
-//         // Update existing movie
-//         movies[existingMovieIndex] = { id: movieId, ...req.body };
-//         const updatedMovie = movies[existingMovieIndex]
-//         writeMoviesToFile(movies);
-//         res.json({ message: 'Movie updated successfully', data: updatedMovie });
-//     } else {
-//         // Create new movie if it doesn't exist
-//         const newMovie = { id: movieId, ...req.body };
-//         movies.push(newMovie);
-//         writeMoviesToFile(movies);
-//         res.status(201).json({ message: 'Movie List', data: newMovie });
-//     }
-// });
-
-// Route to add a new movie with image upload
-app.post('/add_movies', upload.single('image'), (req, res) => {
-    const movies = readMoviesFromFile();
-    // Generate a new unique ID for the new movie
-    const newMovieId = movies.length > 0 ? Math.max(...movies.map(movie => movie.id)) + 1 : 1;
-    const newMovie = { 
-        id: newMovieId, 
-        name: req.body.name, 
-        year: req.body.year, 
-        rating: req.body.rating, 
-        image: req.file ? req.file.filename : null // Save the filename of the uploaded image
-    };
-    movies.push(newMovie);
-    writeMoviesToFile(movies);
-    res.status(201).json({ message: 'New Movie added successfuly', data: newMovie });
-});
-
-// Route to update a movie with image upload
-app.post('/update_movies/:id', upload.single('image'), (req, res) => {
+// Route to update an existing movie
+app.post('/update_movies/:id', (req, res) => {
     const movies = readMoviesFromFile();
     const movieId = parseInt(req.params.id);
     const existingMovieIndex = movies.findIndex(movie => movie.id === movieId);
     if (existingMovieIndex !== -1) {
-        // Update existing movie
-        movies[existingMovieIndex] = { 
-            id: movieId, 
-            name: req.body.name, 
-            year: req.body.year, 
-            rating: req.body.rating, 
-            image: req.file ? req.file.filename : null // Save the filename of the uploaded image
-        };
-        const updatedMovie = movies[existingMovieIndex];
+        movies[existingMovieIndex] = { id: movieId, ...req.body };
         writeMoviesToFile(movies);
-        res.json({ message: 'Movie updated successfully', data: updatedMovie });
+        res.json({ message: 'Movie updated successfully', data: { ...movies[existingMovieIndex], image: getImageUrl(movies[existingMovieIndex].image, req) } });
     } else {
-        // Create new movie if it doesn't exist
-        const newMovie = { 
-            id: movieId, 
-            name: req.body.name, 
-            year: req.body.year, 
-            rating: req.body.rating, 
-            image: req.file ? req.file.filename : null // Save the filename of the uploaded image
-        };
-        movies.push(newMovie);
-        writeMoviesToFile(movies);
-        res.status(201).json({ message: 'Movie List', data: newMovie });
+        res.status(404).json({ error: 'Movie not found' });
     }
 });
-
 
 // Route to delete a movie
 app.delete('/delete_movies/:id', (req, res) => {
@@ -139,7 +106,7 @@ app.delete('/delete_movies/:id', (req, res) => {
         writeMoviesToFile(movies);
         res.json({ message: 'Movie deleted' });
     } else {
-        res.status(401).json({ error: 'Movie not found' });
+        res.status(404).json({ error: 'Movie not found' });
     }
 });
 
