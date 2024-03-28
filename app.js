@@ -30,7 +30,7 @@ app.get('/', (req, res) => {
 // Route to get all movies
 app.get('/movies', (req, res) => {
     const movies = readMoviesFromFile();
-    res.json(movies);
+    res.json({ message: 'Movie List', data: movies });
 });
 
 // Route to add a new movie
