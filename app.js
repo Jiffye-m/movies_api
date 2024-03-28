@@ -34,30 +34,30 @@ app.get('/movies', (req, res) => {
 });
 
 // Route to add a new movie
-app.post('/movies', (req, res) => {
+app.post('/add_movies', (req, res) => {
     const movies = readMoviesFromFile();
     // Generate a new unique ID for the new movie
     const newMovieId = movies.length > 0 ? Math.max(...movies.map(movie => movie.id)) + 1 : 1;
     const newMovie = { id: newMovieId, ...req.body };
     movies.push(newMovie);
     writeMoviesToFile(movies);
-    res.status(201).json(newMovie);
+    res.status(201).json({ message: 'New Movie added successfuly', data: newMovie });
 });
 
 
 // Route to get a specific movie by ID
-app.get('/movies/:id', (req, res) => {
+app.get('/single_movies/:id', (req, res) => {
     const movies = readMoviesFromFile();
     const movie = movies.find(movie => movie.id === parseInt(req.params.id));
     if (movie) {
-        res.json(movie);
+        res.json({ message: 'Movie Detail', data: movie });
     } else {
         res.status(404).json({ error: 'Movie not found' });
     }
 });
 
 // Route to add a new movie or update an existing movie
-app.post('/movies/:id', (req, res) => {
+app.post('/update_movies/:id', (req, res) => {
     const movies = readMoviesFromFile();
     const movieId = parseInt(req.params.id);
     const existingMovieIndex = movies.findIndex(movie => movie.id === movieId);
@@ -71,12 +71,12 @@ app.post('/movies/:id', (req, res) => {
         const newMovie = { id: movieId, ...req.body };
         movies.push(newMovie);
         writeMoviesToFile(movies);
-        res.status(201).json(newMovie);
+        res.status(201).json({ message: 'Movie List', data: newMovie });
     }
 });
 
 // Route to delete a movie
-app.delete('/movies/:id', (req, res) => {
+app.delete('/delete_movies/:id', (req, res) => {
     const movies = readMoviesFromFile();
     const index = movies.findIndex(movie => movie.id === parseInt(req.params.id));
     if (index !== -1) {
