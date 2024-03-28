@@ -64,8 +64,9 @@ app.post('/update_movies/:id', (req, res) => {
     if (existingMovieIndex !== -1) {
         // Update existing movie
         movies[existingMovieIndex] = { id: movieId, ...req.body };
+        const updatedMovie = movies[existingMovieIndex]
         writeMoviesToFile(movies);
-        res.json({ message: 'Movie updated successfully' });
+        res.json({ message: 'Movie updated successfully', data: updatedMovie });
     } else {
         // Create new movie if it doesn't exist
         const newMovie = { id: movieId, ...req.body };
