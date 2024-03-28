@@ -52,7 +52,7 @@ app.get('/single_movies/:id', (req, res) => {
     if (movie) {
         res.json({ message: 'Movie Detail', data: movie });
     } else {
-        res.status(404).json({ error: 'Movie not found' });
+        res.status(401).json({ error: 'Movie not found' });
     }
 });
 
@@ -85,7 +85,7 @@ app.delete('/delete_movies/:id', (req, res) => {
         writeMoviesToFile(movies);
         res.json({ message: 'Movie deleted' });
     } else {
-        res.status(404).json({ error: 'Movie not found' });
+        res.status(401).json({ error: 'Movie not found' });
     }
 });
 
