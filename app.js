@@ -24,9 +24,17 @@ function readMoviesFromFile() {
 }
 
 // Function to write movie data to JSON file
+// function writeMoviesToFile(data) {
+//     fs.writeFileSync(filePath, JSON.stringify({ movies: data }, null, 2));
+// }
+// Function to write movie data to JSON file
 function writeMoviesToFile(data) {
-    fs.writeFileSync(filePath, JSON.stringify({ movies: data }, null, 2));
+    const jsonData = {
+        movies: data
+    };
+    fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2));
 }
+
 
 // Function to generate full URL for an image
 function getImageUrl(filename, req) {
@@ -67,7 +75,8 @@ app.post('/add_movies', (req, res) => {
         const movies = readMoviesFromFile();
         const newMovieId = movies.length > 0 ? Math.max(...movies.map(movie => movie.id)) + 1 : 1;
         const newMovie = { id: newMovieId, ...req.body, image: fileName };
-        writeMoviesToFile(movies); // Issue: Saving old movie data, not including new movie
+        movies.push(newMovie); // Append new movie to existing list
+        writeMoviesToFile(movies); // Write updated movie list to file
         res.status(201).json({ message: 'New Movie added successfully', data: { ...newMovie, image: getImageUrl(newMovie.image, req) } });
     });
 });
