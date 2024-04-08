@@ -67,10 +67,11 @@ app.post('/add_movies', (req, res) => {
         const movies = readMoviesFromFile();
         const newMovieId = movies.length > 0 ? Math.max(...movies.map(movie => movie.id)) + 1 : 1;
         const newMovie = { id: newMovieId, ...req.body, image: fileName };
-        writeMoviesToFile(movies);
+        writeMoviesToFile(movies); // Issue: Saving old movie data, not including new movie
         res.status(201).json({ message: 'New Movie added successfully', data: { ...newMovie, image: getImageUrl(newMovie.image, req) } });
     });
 });
+
 
 // Route to get a specific movie by ID
 app.get('/single_movies/:id', (req, res) => {
