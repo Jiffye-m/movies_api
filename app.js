@@ -108,7 +108,7 @@ app.post('/update_movies/:id', (req, res) => {
 });
 
 // Route to delete a movie
-app.delete('/delete_movies/:id', (req, res) => {
+app.post('/delete_movies/:id', (req, res) => {
     const movies = readMoviesFromFile();
     const index = movies.findIndex(movie => movie.id === parseInt(req.params.id));
     if (index !== -1) {
